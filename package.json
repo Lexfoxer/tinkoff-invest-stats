@@ -1,0 +1,15 @@
+{
+  "name": "invest_stats",
+  "version": "1.0.0",
+  "author": "Lexfoxer",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "start-detail": "node app.js detail"
+  },
+  "dependencies": {
+    "@tinkoff/invest-openapi-js-sdk": "^1.2.16",
+    "columnify": "^1.5.4",
+    "dotenv": "^8.2.0"
+  }
+}
