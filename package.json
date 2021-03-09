@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "author": "Lexfoxer",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "start": "node app.js",
     "start-detail": "node app.js detail"
