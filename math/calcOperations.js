@@ -1,13 +1,16 @@
 import { getTicketInfo } from "./../plugins/tinkoff.invest.js";
 import { round } from "./../helpers.js";
+import { figiCurrencies } from "../constants.js";
 
 const calcOperations = async (operations) => {
   const statsServiceCommission = { value: 0 };
   const stats = {};
 
+  const figiCurrenciesList = figiCurrencies.map(el => el.figi);
+
   for (const data of operations) {
     // Исключаем из статистики действия с валютой
-    if (data.figi === 'BBG0013HGFT4') { // BBG0013HGFT4 => USD
+    if (figiCurrenciesList.includes(data.figi)) { // BBG0013HGFT4 => USD, BBG0013HJJ31 => EUR
       continue
     }
 

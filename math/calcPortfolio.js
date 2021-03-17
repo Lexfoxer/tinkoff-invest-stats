@@ -1,12 +1,15 @@
+import { figiCurrencies } from '../constants.js';
 import { round } from './../helpers.js';
 import { getOrderBook } from "./../plugins/tinkoff.invest.js";
 
 const calcPortfolio = async (positions) => {
   const portfolio = {};
 
+  const figiCurrenciesList = figiCurrencies.map(el => el.figi);
+
   for (const f of positions) {
     // Исключаем из статистики действия с валютой
-    if (f.figi === 'BBG0013HGFT4') { // BBG0013HGFT4 => USD
+    if (figiCurrenciesList.includes(f.figi)) {
       continue
     }
 

@@ -1,34 +1,35 @@
 import { getOrderBook } from './../plugins/tinkoff.invest.js';
 import { fixed, round } from './../helpers.js';
+import { figiCurrencies } from './../constants.js';
 
-const calcStats = async (s, p) => {
+const calcStats = async (stats, portfolio) => {
   const res = { debit: {}, commission: {} };
   const resByTicket = [];
 
   // Расчет дохода каждой компании в портфеле
   // по сравнению с их текущей стоимостью
-  for (const a in p) {
-    for (const k in s[a].payment) {
-      s[a].payment[k] = round(p[a].totalPrice + s[a].payment[k])
+  for (const portfolioItem in portfolio) {
+    for (const currency in stats[portfolioItem].payment) {
+      stats[portfolioItem].payment[currency] = round(portfolio[portfolioItem].totalPrice + stats[portfolioItem].payment[currency])
     }
-    s[a].inStock = true
+    stats[portfolioItem].inStock = true
   }
 
   // Суммирование
-  for (const a in s) {
-    for (const b in s[a].payment) {
-      res.debit[b] = round((res.debit[b] || 0) + s[a].payment[b]);
+  for (const portfolioItem in stats) {
+    for (const currency in stats[portfolioItem].payment) {
+      res.debit[currency] = round((res.debit[currency] || 0) + stats[portfolioItem].payment[currency]);
     }
 
-    for (const b in s[a].commission) {
-      res.commission[b] = round((res.commission[b] || 0) + s[a].commission[b]);
+    for (const currency in stats[portfolioItem].commission) {
+      res.commission[currency] = round((res.commission[currency] || 0) + stats[portfolioItem].commission[currency]);
     }
 
     const dataItem = {
-      name: s[a].name,
-      value: s[a].payment.USD || s[a].payment.RUB,
-      currency: s[a].payment.USD ? 'USD' : 'RUB',
-      inStock: Boolean(s[a].inStock),
+      name: stats[portfolioItem].name,
+      value: Object.values(stats[portfolioItem].payment)[0],
+      currency: Object.keys(stats[portfolioItem].payment)[0],
+      inStock: Boolean(stats[portfolioItem].inStock),
     };
 
     resByTicket.push(dataItem);
@@ -43,23 +44,37 @@ const calcStats = async (s, p) => {
     res.commission[k] = fixed(round(res.commission[k]));
   }
 
-  // Получить стоимость USD
-  const { lastPrice: lastPriceUsd } = await getOrderBook('BBG0013HGFT4');
+  // Получить стоимость валют
+  const lastPrice = {};
+  try {
+    const asyncGets = figiCurrencies.map(async (currency) => {
+      lastPrice[currency.name] = (await getOrderBook(currency.figi)).lastPrice;
+    })
+
+    await Promise.all(asyncGets);
+  } catch(e) {
+    console.error('Не удалось получить стоимость валют');
+    throw Error(e);
+  }
+
+  console.log(lastPrice);
 
   resByTicket.map(el => {
-    el.valueInRub = el.currency === 'USD'
-      ? round(el.value * lastPriceUsd)
-      : el.value;
+    if (el.currency !== 'RUB') {
+      el.valueInRub = round(el.value * lastPrice[el.currency]);
+    } else {
+      el.valueInRub = el.value;
+    }
     return el;
   })
 
-  resByTicket.sort((a, b) => {
-    if (a.currency > b.currency) return 1;
-    if (a.currency < b.currency) return -1;
+  resByTicket.sort((portfolioItem, b) => {
+    if (portfolioItem.currency > b.currency) return 1;
+    if (portfolioItem.currency < b.currency) return -1;
     return 0;
   });
-  resByTicket.sort((a, b) => b.valueInRub - a.valueInRub);
-  resByTicket.sort((a, b) => b.inStock - a.inStock);
+  resByTicket.sort((portfolioItem, b) => b.valueInRub - portfolioItem.valueInRub);
+  resByTicket.sort((portfolioItem, b) => b.inStock - portfolioItem.inStock);
 
   return {
     res,
